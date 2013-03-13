@@ -3,6 +3,7 @@
 
 # Libraries
 *.lib
+*.so
 *.a
 
 # Shared objects (inc. Windows DLLs)
@@ -15,3 +16,6 @@
 *.exe
 *.out
 *.app
+*.hex
+*.bin
+*.elf
