@@ -1,0 +1,644 @@
+@/*
+@ * pdm_filter.S
+@ *
+@ *  Created on: 24 May 2012
+@ *  Author: ST
+@ *  Modified by: tipok
+@ *  Description: This is PDM filter implementation from ST,
+@ *               but re-assembled due lack of hard float abi in library,
+@ *               provided by ST. Also unneeded parts are removed.
+@ */
+	.syntax unified
+	.cpu cortex-m4
+	.fpu fpv4-sp-d16
+@;	.eabi_attribute 20, 1
+@;	.eabi_attribute 21, 1
+@;	.eabi_attribute 23, 3
+@;	.eabi_attribute 24, 1
+@;	.eabi_attribute 25, 1
+@;	.eabi_attribute 26, 2
+@;	.eabi_attribute 30, 2
+@;	.eabi_attribute 18, 2
+	.thumb
+
+
+@; ===========================================================================
+@; Segment type:	Externs
+@; ===========================================================================
+	.global __aeabi_fcmpeq
+	.global __aeabi_fmul
+	.global __aeabi_f2d
+	.global __aeabi_i2d
+	.global __aeabi_ddiv
+	.global __aeabi_dadd
+	.global __aeabi_d2uiz
+	.global __aeabi_dmul
+
+@; ===========================================================================
+	.section .text.PDM_Filter_Init
+	.code 16
+	.weak PDM_Filter_Init
+	.type PDM_Filter_Init, %function
+@; ===========================================================================
+PDM_Filter_Init:
+		PUSH.W	{R3-R11,LR}
+@;		LDR	R2, =0xF407A5C2 @test data
+@;		LDR	R3, =0x40023000 @CRC BASE
+		MOV	R5, R0
+@;		STR	R2, [R3] @load 0xF407A5C2 into crc data register
+@;		LDR	R3, [R3] @get contents of crc data register
+@;		LDR	R2, =0xB5E8B5CD @load control word
+		MOVS	R6, #0
+@;		CMP	R3, R2 @compare crc32 and awaited result
+@;		BNE	loc_42 @ Checking that it's really CPU, that manufatured by ST.
+@;		LDR	R2, =stm32_crc @get contents of
+		LDR	R7, [R0,#4]			@LP_HZ
+		ADD.W	R4, R0,	#0x10
+@;		STR	R3, [R2] @save 0xB5E8B5CD into =stm32_crc variable
+		STR	R6, [R4,#0xC]
+		STR	R6, [R0,#0x10]
+		STR	R6, [R4,#8]
+		STR	R6, [R4,#4]
+		STR	R6, [R4,#0x18]
+		STR	R6, [R4,#0x14]
+		STR	R6, [R4,#0x10]
+		MOV	R0, R7
+		MOVS	R1, #0
+		BL	__aeabi_fcmpeq		@fcmpeq(LP_HZ, 0)
+		CBZ	R0, loc_44
+		B	loc_90
+@; ---------------------------------------------------------------------------
+@;
+@;loc_42:
+@;		B	loc_42
+@; ---------------------------------------------------------------------------
+
+loc_44:
+		MOV	R0, R7
+		MOV.W	R1, #0x43800000
+		BL	__aeabi_fmul
+		BL	__aeabi_f2d
+		MOV	R8, R0
+		MOV	R0, R7
+		MOV	R9, R1
+		BL	__aeabi_f2d
+		MOV	R6, R0
+		LDRH	R0, [R5]
+		MOV	R7, R1
+		BL	__aeabi_i2d
+		ADR	R3, dword_F8
+		LDRD.W	R2, R3,	[R3]
+		BL	__aeabi_ddiv
+		MOV	R2, R0
+		MOV	R3, R1
+		MOV	R0, R6
+		MOV	R1, R7
+		BL	__aeabi_dadd
+		MOV	R2, R0
+		MOV	R3, R1
+		MOV	R0, R8
+		MOV	R1, R9
+		BL	__aeabi_ddiv
+		BL	__aeabi_d2uiz
+		STRH	R0, [R4,#0x1C]
+		B	loc_92
+@; ---------------------------------------------------------------------------
+
+loc_90:
+		STRH	R6, [R4,#0x1C]
+
+loc_92:
+		LDR	R7, [R5,#8]
+		MOVS	R1, #0
+		MOV	R0, R7
+		BL	__aeabi_fcmpeq
+		CBNZ	R0, loc_E4
+		LDRH	R6, [R5]
+		LSLS	R0, R6,	#8
+		BL	__aeabi_i2d
+		MOV	R10, R0
+		MOV	R0, R7
+		MOV	R11, R1
+		BL	__aeabi_f2d
+		ADR	R3, dword_F8
+		LDRD.W	R2, R3,	[R3]
+		BL	__aeabi_dmul
+		MOV	R8, R0
+		MOV	R0, R6
+		MOV	R9, R1
+		BL	__aeabi_i2d
+		MOV	R2, R0
+		MOV	R3, R1
+		MOV	R0, R8
+		MOV	R1, R9
+		BL	__aeabi_dadd
+		MOV	R2, R0
+		MOV	R3, R1
+		MOV	R0, R10
+		MOV	R1, R11
+		BL	__aeabi_ddiv
+		BL	__aeabi_d2uiz
+		STRH	R0, [R4,#0x1E]
+		B	loc_E8
+@; ---------------------------------------------------------------------------
+
+loc_E4:
+		MOVS	R3, #0
+		STRH	R3, [R4,#0x1E]
+
+loc_E8:
+		LDRH	R2, [R5]
+		MOV.W	R3, #0x3E8
+		UDIV.W	R3, R2,	R3
+		STRH	R3, [R4,#0x20]
+		POP.W	{R3-R11,PC}
+@; End of function PDM_Filter_Init
+
+@; ---------------------------------------------------------------------------
+dword_F8:
+	.word 0x51EB851F, 0x40191EB8
+@;dword_100:
+@;	.word 0xF407A5C2
+@;dword_104:
+@;	.word 0x40023000
+@;dword_108:
+@;	.word 0xB5E8B5CD
+@;off_10C:
+@;	.word stm32_crc		@; DATA XREF: PDM_Filter_Init+16r
+	@ENDP
+	.size PDM_Filter_Init, .-PDM_Filter_Init
+
+
+
+@; ===========================================================================
+	.section .text.PDM_Filter_64_LSB
+	.code 16
+	.weak PDM_Filter_64_LSB
+	.type PDM_Filter_64_LSB, %function
+@; ===========================================================================
+PDM_Filter_64_LSB:
+
+var_A4		= -0xA4
+var_9C		= -0x9C
+var_94		= -0x94
+var_90		= -0x90
+var_8C		= -0x8C
+var_88		= -0x88
+var_84		= -0x84
+var_80		= -0x80
+var_7C		= -0x7C
+var_78		= -0x78
+var_74		= -0x74
+var_70		= -0x70
+var_6C		= -0x6C
+var_68		= -0x68
+var_64		= -0x64
+var_60		= -0x60
+var_5C		= -0x5C
+var_58		= -0x58
+var_54		= -0x54
+var_50		= -0x50
+var_4C		= -0x4C
+var_48		= -0x48
+var_44		= -0x44
+var_40		= -0x40
+var_3C		= -0x3C
+var_38		= -0x38
+var_34		= -0x34
+var_30		= -0x30
+var_2C		= -0x2C
+
+		PUSH.W	{R4-R11,LR}
+		SUB	SP, SP,	#0x84
+		STR	R2, [SP,#0xA8+var_2C]
+@;		LDR	R2, =stm32_crc @load address of stm32_crc
+		STR	R1, [SP,#0xA8+var_30]
+@;		LDR	R1, [R2] @load 0xB5E8B5CD that in stm32_crc ram var
+@;		LDR	R2, =0xB5E8B5CD @load awaited value
+@;		CMP	R1, R2
+@;		BEQ	loc_126 @if all ok, do the stuff
+@;
+@;loc_124:
+@;		B	loc_124
+@; ---------------------------------------------------------------------------
+
+loc_126:
+		ADD.W	R2, R3,	#0x10
+		LDR	R4, [R2,#0x14]
+		LDR	R1, [R2,#0x10]
+		STR	R4, [SP,#0xA8+var_7C]
+		LDR	R4, [R2,#0xC]
+		STR	R1, [SP,#0xA8+var_88]
+		LDR	R1, [R2,#8]
+		STR	R4, [SP,#0xA8+var_90]
+		LDRH	R4, [R2,#0x1E]
+		STR	R1, [SP,#0xA8+var_94]
+		LDRH	R1, [R3,#0xC]
+		LDR	R5, [R2,#0x18]
+		STR	R4, [SP,#0xA8+var_74]
+		MOVS	R4, #6
+		MULS	R4, R1
+		STR	R5, [SP,#0xA8+var_84]
+		LDRH	R5, [R2,#0x1C]
+		MOV.W	R9, R1,LSL#2
+		MOV.W	R11, R1,LSL#3
+		STR	R5, [SP,#0xA8+var_78]
+		LSLS	R5, R1,	#1
+		ADD.W	R8, R5,	R1
+		ADD.W	R10, R9, R1
+		STR	R4, [SP,#0xA8+var_48]
+		RSB.W	R12, R1, R11
+		MOVS	R4, #0
+		LDR	R7, [R3,#0x10]
+		LDR	R6, [R2,#4]
+		STR	R5, [SP,#0xA8+var_60]
+		STR.W	R8, [SP,#0xA8+var_50]
+		STR.W	R9, [SP,#0xA8+var_5C]
+		STR.W	R10, [SP,#0xA8+var_4C]
+		STR.W	R11, [SP,#0xA8+var_54]
+		STR.W	R12, [SP,#0xA8+var_44]
+		STR	R4, [SP,#0xA8+var_8C]
+		STR	R1, [SP,#0xA8+var_9C]
+		STR	R3, [SP,#0xA8+var_A4]
+		B	loc_3B0
+@; ---------------------------------------------------------------------------
+
+loc_188:
+		LDRB.W	R8, [R0]
+		LDR.W	R10, =T2
+		LDR	R5, [SP,#0xA8+var_9C]
+		LDRB.W	R4, [R10,R8]
+		LDR.W	R9, [SP,#0xA8+var_60]
+		ADDS	R6, R6,	R4
+		STR	R6, [SP,#0xA8+var_80]
+		LDRB.W	R12, [R0,R5]
+		LDR	R6, =T1
+		LDRB.W	R4, [R10,R12]
+		LDRB.W	R5, [R6,R8]
+		LDR	R1, [SP,#0xA8+var_50]
+		ADD.W	R4, R4,	R5,LSL#1
+		ADDS	R7, R4,	R7
+		STR	R7, [SP,#0xA8+var_70]
+		LDRB.W	R4, [R0,R9]
+		LDR	R7, =T0
+		LDRB.W	R5, [R10,R4]
+		LDRB.W	R8, [R7,R8]
+		LDRB.W	R11, [R0,R1]
+		ADD	R5, R8
+		LDRB.W	R8, [R6,R12]
+		LDRB.W	R9, [R7,R12]
+		ADD.W	R5, R5,	R8,LSL#1
+		LDRB.W	R8, [R10,R11]
+		LDRB.W	R12, [R6,R4]
+		ADD	R9, R8
+		ADD.W	R12, R9, R12,LSL#1
+		LDR	R3, [SP,#0xA8+var_5C]
+		STR.W	R12, [SP,#0xA8+var_6C]
+		LDRB.W	R9, [R0,R3]
+		LDRB	R4, [R7,R4]
+		LDRB.W	R12, [R10,R9]
+		LDRB.W	R8, [R6,R11]
+		ADD	R4, R12
+		ADD.W	R8, R4,	R8,LSL#1
+		LDR	R4, [SP,#0xA8+var_6C]
+		STR.W	R8, [SP,#0xA8+var_68]
+		ADD	R4, R8
+		LDR.W	R8, [SP,#0xA8+var_4C]
+		STR	R4, [SP,#0xA8+var_38]
+		LDRB.W	R12, [R0,R8]
+		LDRB.W	R8, [R7,R11]
+		LDRB.W	R4, [R10,R12]
+		LDR	R1, [SP,#0xA8+var_48]
+		ADD	R4, R8
+		LDRB.W	R8, [R6,R9]
+		LDRB.W	R9, [R7,R9]
+		ADD.W	R4, R4,	R8,LSL#1
+		ADD.W	R11, R4, R5
+		STR.W	R11, [SP,#0xA8+var_34]
+		LDRB.W	R8, [R0,R1]
+		LDRB.W	R11, [R10,R8]
+		ADD	R9, R11
+		LDRB.W	R11, [R6,R12]
+		ADD.W	R11, R9, R11,LSL#1
+		STR.W	R11, [SP,#0xA8+var_64]
+		LDR	R3, [SP,#0xA8+var_70]
+		LDRB.W	R12, [R7,R12]
+		ADD	R3, R11
+		LDR.W	R11, [SP,#0xA8+var_44]
+		STR	R3, [SP,#0xA8+var_3C]
+		LDRB.W	R9, [R0,R11]
+		LDRB.W	R11, [R6,R8]
+		LDRB.W	R10, [R10,R9]
+		LDR	R1, [SP,#0xA8+var_6C]
+		ADD	R12, R10
+		ADD.W	R11, R12, R11,LSL#1
+		LDR.W	R12, [SP,#0xA8+var_80]
+		MOV.W	R10, R5,LSL#4
+		ADD	R12, R11
+		STR.W	R12, [SP,#0xA8+var_40]
+		RSB.W	R10, R5, R10
+		LDRB.W	R12, [R7,R8]
+		MOV.W	R8, #0xA
+		MLA.W	R10, R8, R1, R10
+		LDRB.W	R6, [R6,R9]
+		LDR	R3, [SP,#0xA8+var_64]
+		STR.W	R11, [SP,#0xA8+var_58]
+		ADD	R10, R3
+		LDR.W	R11, [SP,#0xA8+var_68]
+		ADD.W	R6, R12, R6,LSL#1
+		ADD.W	R12, R4, R4,LSL#1
+		ADD	R10, R12
+		LDRB.W	R7, [R7,R9]
+		MOV.W	R9, #6
+		MLA.W	R10, R9, R11, R10
+		LDR	R1, [SP,#0xA8+var_90]
+		LDR	R3, [SP,#0xA8+var_80]
+		ADD	R10, R1
+		MOV.W	R12, #0x1C
+		MLA.W	R10, R12, R3, R10
+		LDR	R1, [SP,#0xA8+var_70]
+		MOV.W	R11, #0x15
+		MLA.W	R10, R11, R1, R10
+		LDR	R3, [SP,#0xA8+var_34]
+		STR.W	R10, [SP,#0xA8+var_80]
+		MOV.W	R10, #0x2E @; '.'
+		MUL.W	R10, R10, R3
+		LDR	R1, [SP,#0xA8+var_38]
+		MOVS	R3, #0x30 @; '0'
+		MLA.W	R10, R3, R1, R10
+		LDR	R1, [SP,#0xA8+var_94]
+		LDR	R3, [SP,#0xA8+var_40]
+		ADD	R1, R10
+		MOV.W	R10, #0x24 @; '$'
+		MLA.W	R3, R10, R3, R1
+		LDR	R1, [SP,#0xA8+var_3C]
+		ADD	R10, R9
+		MLA.W	R1, R10, R1, R3
+		STR	R1, [SP,#0xA8+var_90]
+		LDR	R1, [SP,#0xA8+var_6C]
+		ADD.W	R5, R5,	R5,LSL#1
+		MLA.W	R9, R9,	R1, R5
+		LSLS	R5, R4,	#4
+		SUBS	R4, R5,	R4
+		LDR	R3, [SP,#0xA8+var_68]
+		ADD	R9, R4
+		MLA.W	R9, R8,	R3, R9
+		LDR	R4, [SP,#0xA8+var_58]
+		LDR	R5, [SP,#0xA8+var_64]
+		MLA.W	R9, R12, R4, R9
+		MLA.W	R9, R11, R5, R9
+		LDR	R1, [SP,#0xA8+var_70]
+		LDR	R3, [SP,#0xA8+var_80]
+		LDR	R4, [SP,#0xA8+var_74]
+		ADD	R1, R9
+		STR	R1, [SP,#0xA8+var_94]
+		SUB.W	R10, R3, #0x20000
+		CBZ	R4, loc_33E
+		LDR	R5, [SP,#0xA8+var_88]
+		LDR	R1, [SP,#0xA8+var_7C]
+		LDR	R3, [SP,#0xA8+var_74]
+		SUBS	R4, R5,	R1
+		ADD	R4, R10
+		MULS	R4, R3
+		IT MI
+		ADDMI	R4, #0xFF
+		ASRS	R4, R4,	#8
+		STR.W	R10, [SP,#0xA8+var_7C]
+		STR	R4, [SP,#0xA8+var_88]
+		MOV	R10, R4
+
+loc_33E:
+		LDR	R4, [SP,#0xA8+var_78]
+		CBZ	R4, loc_35C
+		LDR	R5, [SP,#0xA8+var_84]
+		RSB.W	R4, R4,	#0x100
+		MULS	R4, R5
+		LDR	R1, [SP,#0xA8+var_78]
+		MLA.W	R4, R1,	R10, R4
+		CMP	R4, #0
+		IT LT
+		ADDLT	R4, #0xFF
+		ASRS	R4, R4,	#8
+		STR	R4, [SP,#0xA8+var_84]
+		MOV	R10, R4
+
+loc_35C:
+		LDR	R3, [SP,#0xA8+var_2C]
+		MUL.W	R10, R3, R10
+		CMP.W	R10, #0
+		BLE	loc_372
+		ADD.W	R10, R10, #8
+		MOV.W	R10, R10,ASR#4
+		B	loc_380
+@; ---------------------------------------------------------------------------
+
+loc_372:
+		SUBS.W	R12, R10, #8
+		IT MI
+		ADDMI.W	R12, R10, #7
+		MOV.W	R10, R12,ASR#4
+
+loc_380:
+		LDR	R5, [SP,#0xA8+var_A4]
+		LDR.W	R8, [SP,#0xA8+var_8C]
+		LDRH	R4, [R5,#0xE]
+		MOVW	R12, #0x7FBC
+		MUL.W	R4, R4,	R8
+		LDR	R5, =0xFFFF8044
+		CMP	R10, R12
+		IT LT
+		MOVLT	R12, R10
+		LDR	R1, [SP,#0xA8+var_30]
+		LDR	R3, [SP,#0xA8+var_54]
+		CMP	R12, R5
+		IT GE
+		MOVGE	R5, R12
+		ADD.W	R8, R8,	#1
+		STRH.W	R5, [R1,R4,LSL#1]
+		ADDS	R0, R0,	R3
+		STR.W	R8, [SP,#0xA8+var_8C]
+
+loc_3B0:
+		LDRH	R4, [R2,#0x20]
+		LDR	R5, [SP,#0xA8+var_8C]
+		CMP	R5, R4
+		BLT.W	loc_188
+		LDR	R3, [SP,#0xA8+var_A4]
+		LDR	R1, [SP,#0xA8+var_94]
+		STR	R7, [R3,#0x10]
+		LDR	R3, [SP,#0xA8+var_90]
+		STR	R1, [R2,#8]
+		STR	R3, [R2,#0xC]
+		LDR	R5, [SP,#0xA8+var_88]
+		LDR	R1, [SP,#0xA8+var_7C]
+		LDR	R3, [SP,#0xA8+var_84]
+		STR	R6, [R2,#4]
+		STR	R5, [R2,#0x10]
+		STR	R1, [R2,#0x14]
+		STR	R3, [R2,#0x18]
+		MOV	R0, R4
+		ADD	SP, SP,	#0x84
+		POP.W	{R4-R11,PC}
+@; End of function PDM_Filter_64_LSB
+
+@; ---------------------------------------------------------------------------
+@;off_3DC:
+@;	.word stm32_crc
+@;dword_3E0:
+@;	.word 0xB5E8B5CD
+off_3E4:
+	.word T1
+off_3E8:
+	.word T0
+dword_3EC:
+	.word 0xFFFF8044
+off_3F0:
+	.word T2
+@; .text.PDM_Filter_64_LSB ends
+	@ENDP
+	.size PDM_Filter_64_LSB, .-PDM_Filter_64_LSB
+
+
+@; Segment type:	Uninitialized
+@;	.section .bss.stm32_crc
+@;	@; ORG 0xCEC
+@;	.global stm32_crc
+@;	stm32_crc	% 4
+@; .bss.stm32_crc ends
+@; ===========================================================================
+
+
+
+
+@; ===========================================================================
+@; Segment type:	Pure data
+	.section .data.T0
+	.align 0
+		@; ORG 0xCF0
+	@.export T0
+@; ===========================================================================
+T0:
+	.byte	   0,  0x1C,  0x15,  0x31,   0xF,	 0x2B,	0x24,  0x40
+	.byte    0xA,  0x26,  0x1F,  0x3B,  0x19,	 0x35,	0x2E,  0x4A
+	.byte	   6,  0x22,  0x1B,  0x37,  0x15,	 0x31,	0x2A,  0x46
+	.byte   0x10,  0x2C,  0x25,  0x41,  0x1F,	 0x3B,	0x34,  0x50
+	.byte	   3,  0x1F,  0x18,  0x34,  0x12,	 0x2E,	0x27,  0x43
+	.byte    0xD,  0x29,  0x22,  0x3E,  0x1C,	 0x38,	0x31,  0x4D
+	.byte	   9,  0x25,  0x1E,  0x3A,  0x18,	 0x34,	0x2D,  0x49
+	.byte   0x13,  0x2F,  0x28,  0x44,  0x22,	 0x3E,	0x37,  0x53
+	.byte	   1,  0x1D,  0x16,  0x32,  0x10,	 0x2C,	0x25,  0x41
+	.byte    0xB,  0x27,  0x20,  0x3C,  0x1A,	 0x36,	0x2F,  0x4B
+	.byte	   7,  0x23,  0x1C,  0x38,  0x16,	 0x32,	0x2B,  0x47
+	.byte   0x11,  0x2D,  0x26,  0x42,  0x20,	 0x3C,	0x35,  0x51
+	.byte	   4,  0x20,  0x19,  0x35,  0x13,	 0x2F,	0x28,  0x44
+	.byte    0xE,  0x2A,  0x23,  0x3F,  0x1D,	 0x39,	0x32,  0x4E
+	.byte    0xA,  0x26,  0x1F,  0x3B,  0x19,	 0x35,	0x2E,  0x4A
+	.byte   0x14,  0x30,  0x29,  0x45,  0x23,	 0x3F,	0x38,  0x54
+	.byte	   0,  0x1C,  0x15,  0x31,   0xF,	 0x2B,	0x24,  0x40
+	.byte    0xA,  0x26,  0x1F,  0x3B,  0x19,	 0x35,	0x2E,  0x4A
+	.byte	   6,  0x22,  0x1B,  0x37,  0x15,	 0x31,	0x2A,  0x46
+	.byte   0x10,  0x2C,  0x25,  0x41,  0x1F,	 0x3B,	0x34,  0x50
+	.byte	   3,  0x1F,  0x18,  0x34,  0x12,	 0x2E,	0x27,  0x43
+	.byte    0xD,  0x29,  0x22,  0x3E,  0x1C,	 0x38,	0x31,  0x4D
+	.byte	   9,  0x25,  0x1E,  0x3A,  0x18,	 0x34,	0x2D,  0x49
+	.byte   0x13,  0x2F,  0x28,  0x44,  0x22,	 0x3E,	0x37,  0x53
+	.byte	   1,  0x1D,  0x16,  0x32,  0x10,	 0x2C,	0x25,  0x41
+	.byte    0xB,  0x27,  0x20,  0x3C,  0x1A,	 0x36,	0x2F,  0x4B
+	.byte	   7,  0x23,  0x1C,  0x38,  0x16,	 0x32,	0x2B,  0x47
+	.byte   0x11,  0x2D,  0x26,  0x42,  0x20,	 0x3C,	0x35,  0x51
+	.byte	   4,  0x20,  0x19,  0x35,  0x13,	 0x2F,	0x28,  0x44
+	.byte    0xE,  0x2A,  0x23,  0x3F,  0x1D,	 0x39,	0x32,  0x4E
+	.byte    0xA,  0x26,  0x1F,  0x3B,  0x19,	 0x35,	0x2E,  0x4A
+	.byte   0x14,  0x30,  0x29,  0x45,  0x23,	 0x3F,	0x38,  0x54
+@; .data.T0	ends
+	.size T0, .-T0
+
+@; ===========================================================================
+@; Segment type:	Pure data
+	.section .data.T1
+	.align 0
+		@; ORG 0xDF0
+	@.export T1
+@; ===========================================================================
+T1:
+	.byte      0,  0x12,  0x15,  0x27,  0x17,	 0x29,	0x2C,  0x3E
+	.byte   0x18,  0x2A,  0x2D,  0x3F,  0x2F,	 0x41,	0x44,  0x56
+	.byte   0x18,  0x2A,  0x2D,  0x3F,  0x2F,	 0x41,	0x44,  0x56
+	.byte   0x30,  0x42,  0x45,  0x57,  0x47,	 0x59,	0x5C,  0x6E
+	.byte   0x17,  0x29,  0x2C,  0x3E,  0x2E,	 0x40,	0x43,  0x55
+	.byte   0x2F,  0x41,  0x44,  0x56,  0x46,	 0x58,	0x5B,  0x6D
+	.byte   0x2F,  0x41,  0x44,  0x56,  0x46,	 0x58,	0x5B,  0x6D
+	.byte   0x47,  0x59,  0x5C,  0x6E,  0x5E,	 0x70,	0x73,  0x85
+	.byte   0x15,  0x27,  0x2A,  0x3C,  0x2C,	 0x3E,	0x41,  0x53
+	.byte   0x2D,  0x3F,  0x42,  0x54,  0x44,	 0x56,	0x59,  0x6B
+	.byte   0x2D,  0x3F,  0x42,  0x54,  0x44,	 0x56,	0x59,  0x6B
+	.byte   0x45,  0x57,  0x5A,  0x6C,  0x5C,	 0x6E,	0x71,  0x83
+	.byte   0x2C,  0x3E,  0x41,  0x53,  0x43,	 0x55,	0x58,  0x6A
+	.byte   0x44,  0x56,  0x59,  0x6B,  0x5B,	 0x6D,	0x70,  0x82
+	.byte   0x44,  0x56,  0x59,  0x6B,  0x5B,	 0x6D,	0x70,  0x82
+	.byte   0x5C,  0x6E,  0x71,  0x83,  0x73,	 0x85,	0x88,  0x9A
+	.byte   0x12,  0x24,  0x27,  0x39,  0x29,	 0x3B,	0x3E,  0x50
+	.byte   0x2A,  0x3C,  0x3F,  0x51,  0x41,	 0x53,	0x56,  0x68
+	.byte   0x2A,  0x3C,  0x3F,  0x51,  0x41,	 0x53,	0x56,  0x68
+	.byte   0x42,  0x54,  0x57,  0x69,  0x59,	 0x6B,	0x6E,  0x80
+	.byte   0x29,  0x3B,  0x3E,  0x50,  0x40,	 0x52,	0x55,  0x67
+	.byte   0x41,  0x53,  0x56,  0x68,  0x58,	 0x6A,	0x6D,  0x7F
+	.byte   0x41,  0x53,  0x56,  0x68,  0x58,	 0x6A,	0x6D,  0x7F
+	.byte   0x59,  0x6B,  0x6E,  0x80,  0x70,	 0x82,	0x85,  0x97
+	.byte   0x27,  0x39,  0x3C,  0x4E,  0x3E,	 0x50,	0x53,  0x65
+	.byte   0x3F,  0x51,  0x54,  0x66,  0x56,	 0x68,	0x6B,  0x7D
+	.byte   0x3F,  0x51,  0x54,  0x66,  0x56,	 0x68,	0x6B,  0x7D
+	.byte   0x57,  0x69,  0x6C,  0x7E,  0x6E,	 0x80,	0x83,  0x95
+	.byte   0x3E,  0x50,  0x53,  0x65,  0x55,	 0x67,	0x6A,  0x7C
+	.byte   0x56,  0x68,  0x6B,  0x7D,  0x6D,	 0x7F,	0x82,  0x94
+	.byte   0x56,  0x68,  0x6B,  0x7D,  0x6D,	 0x7F,	0x82,  0x94
+	.byte   0x6E,  0x80,  0x83,  0x95,  0x85,	 0x97,	0x9A,  0xAC
+@; .data.T1	ends
+	.size T1, .-T1
+
+
+@; ===========================================================================
+@; Segment type:	Pure data
+	.section .data.T2
+	.align 0
+		@; ORG 0xEF0
+	@.export T2
+@; ===========================================================================
+T2:
+	.byte      0,     0,     1,     1,     3,	    3,	   4,	  4
+	.byte      6,     6,     7,     7,     9,	    9,	 0xA,	0xA
+	.byte    0xA,   0xA,   0xB,   0xB,   0xD,	  0xD,	 0xE,	0xE
+	.byte   0x10,  0x10,  0x11,  0x11,  0x13,	 0x13,	0x14,  0x14
+	.byte    0xF,   0xF,  0x10,  0x10,  0x12,	 0x12,	0x13,  0x13
+	.byte   0x15,  0x15,  0x16,  0x16,  0x18,	 0x18,	0x19,  0x19
+	.byte   0x19,  0x19,  0x1A,  0x1A,  0x1C,	 0x1C,	0x1D,  0x1D
+	.byte   0x1F,  0x1F,  0x20,  0x20,  0x22,	 0x22,	0x23,  0x23
+	.byte   0x15,  0x15,  0x16,  0x16,  0x18,	 0x18,	0x19,  0x19
+	.byte   0x1B,  0x1B,  0x1C,  0x1C,  0x1E,	 0x1E,	0x1F,  0x1F
+	.byte   0x1F,  0x1F,  0x20,  0x20,  0x22,	 0x22,	0x23,  0x23
+	.byte   0x25,  0x25,  0x26,  0x26,  0x28,	 0x28,	0x29,  0x29
+	.byte   0x24,  0x24,  0x25,  0x25,  0x27,	 0x27,	0x28,  0x28
+	.byte   0x2A,  0x2A,  0x2B,  0x2B,  0x2D,	 0x2D,	0x2E,  0x2E
+	.byte   0x2E,  0x2E,  0x2F,  0x2F,  0x31,	 0x31,	0x32,  0x32
+	.byte   0x34,  0x34,  0x35,  0x35,  0x37,	 0x37,	0x38,  0x38
+	.byte   0x1C,  0x1C,  0x1D,  0x1D,  0x1F,	 0x1F,	0x20,  0x20
+	.byte   0x22,  0x22,  0x23,  0x23,  0x25,	 0x25,	0x26,  0x26
+	.byte   0x26,  0x26,  0x27,  0x27,  0x29,	 0x29,	0x2A,  0x2A
+	.byte   0x2C,  0x2C,  0x2D,  0x2D,  0x2F,	 0x2F,	0x30,  0x30
+	.byte   0x2B,  0x2B,  0x2C,  0x2C,  0x2E,	 0x2E,	0x2F,  0x2F
+	.byte   0x31,  0x31,  0x32,  0x32,  0x34,	 0x34,	0x35,  0x35
+	.byte   0x35,  0x35,  0x36,  0x36,  0x38,	 0x38,	0x39,  0x39
+	.byte   0x3B,  0x3B,  0x3C,  0x3C,  0x3E,	 0x3E,	0x3F,  0x3F
+	.byte   0x31,  0x31,  0x32,  0x32,  0x34,	 0x34,	0x35,  0x35
+	.byte   0x37,  0x37,  0x38,  0x38,  0x3A,	 0x3A,	0x3B,  0x3B
+	.byte   0x3B,  0x3B,  0x3C,  0x3C,  0x3E,	 0x3E,	0x3F,  0x3F
+	.byte   0x41,  0x41,  0x42,  0x42,  0x44,	 0x44,	0x45,  0x45
+	.byte   0x40,  0x40,  0x41,  0x41,  0x43,	 0x43,	0x44,  0x44
+	.byte   0x46,  0x46,  0x47,  0x47,  0x49,	 0x49,	0x4A,  0x4A
+	.byte   0x4A,  0x4A,  0x4B,  0x4B,  0x4D,	 0x4D,	0x4E,  0x4E
+	.byte   0x50,  0x50,  0x51,  0x51,  0x53,	 0x53,	0x54,  0x54
+@; .data.T2	ends
+	.size T2, .-T2
+
+	@ENDP
+	.end
