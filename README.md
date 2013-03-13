@@ -20,5 +20,6 @@ Some info about implementation:
 6. You can connect some 5/3.3 V terminal RX pin to the board's PA2 pin for receiving various debug messages. The terminal speed is 115200 8N1.
 7. There is 6x FIFO Queue between encoder and modulator, it needs because sometimes one 320-sample frame takes longer than real time, this adds delay up to ~250ms.
 8. Application also used additional 64k memory (so-called core-coupled memory).
-9. By default, firmware just pass-thru microphone samples into output, to enable Codec2+FDMDV just click to user-button (blue one).
+9. By default, firmware just pass-thru microphone samples into output. To enable Codec2+FDMDV - click to user-button (blue one).
 10. CMSIS DSP library is used to accelerate encoding.
+11. Rightnow Codec2 core is old, to correctly decode you need svn rev. 416 of the Codec2.
