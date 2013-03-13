@@ -7,10 +7,7 @@ To build this project, you need this list of tools:
 ------------
 
 * [GNU toolchain from ARM Cortex-R & Cortex-M:](https://launchpad.net/gcc-arm-embedded) -- compilator and toolchains
-* [Eclipse Indigo with CDT](http://www.eclipse.org/downloads/packages/eclipse-ide-cc-developers-includes-incubating-components/indigosr2) -- development tool
-* [GNU ARM Eclipse plugin](http://gnuarmeclipse.livius.net/blog/) -- plug-in for simple cinfiguration of eclipse for ARM microcontrollers.
 * [ST-LINK utils](http://github.com/texane/stlink) -- Debugger & programmer software.
-
 
 Some info about implementation:
 ------------
