@@ -1,6 +1,7 @@
 Codec2 for Cortex-M4F
 ==========
 This is some Codec2 tests for ARM Cortex-M4F STM32F4-Discovery, THIS IS ENCODER + MODULATOR ONLY (yet).
+The codec2-dev branch also contains stm32 port of codec2: https://freetel.svn.sourceforge.net/svnroot/freetel/codec2-dev/stm32
 
 
 To build this project, you need this list of tools:
