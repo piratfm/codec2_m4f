@@ -155,6 +155,7 @@ loc_E8:
 @; End of function PDM_Filter_Init
 
 @; ---------------------------------------------------------------------------
+	.align 8
 dword_F8:
 	.word 0x51EB851F, 0x40191EB8
 @;dword_100:
